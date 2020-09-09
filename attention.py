@@ -14,7 +14,7 @@ def attention(inputs, attention_size, time_major=False, return_alphas=False):
             Matches outputs of RNN/Bi-RNN layer (not final state):
                 In case of RNN, this must be RNN outputs `Tensor`:
                     If time_major == False (default), this must be a tensor of shape:
-                        `[batch_size, max_time, cell.output_size]`.
+                        `[batch_size, max_time, cell.output_size = n_hidden]`.
                     If time_major == True, this must be a tensor of shape:
                         `[max_time, batch_size, cell.output_size]`.
                 In case of Bidirectional RNN, this must be a tuple (outputs_fw, outputs_bw) containing the forward and
@@ -66,7 +66,7 @@ def attention(inputs, attention_size, time_major=False, return_alphas=False):
 
     with tf.name_scope('v'):
         # Applying fully connected layer with non-linear activation to each of the B*T timestamps;
-        #  the shape of `v` is (B,T,D)*(D,A)=(B,T,A), where A=attention_size
+        #  the shape of `v` is (B,T,D)*(D,A)=(B,T,A), where A=attention_size, D=Hidden_Size, T=Time_Step, B=Batch_Size
         v = tf.tanh(tf.tensordot(inputs, w_omega, axes=1) + b_omega)
 
     # For each of the timestamps its vector of size A from `v` is reduced with `u` vector

@@ -30,7 +30,7 @@ def batch_generator(X, y, batch_size):
         if i + batch_size <= size:
             yield X_copy[i:i + batch_size], y_copy[i:i + batch_size]
             i += batch_size
-        else:
+        else:  # 重新再次打乱，再来一遍
             i = 0
             indices = np.arange(size)
             np.random.shuffle(indices)

@@ -1,9 +1,17 @@
 #!/usr/bin/python
 """
-Toy example of attention layer use
+原理链接: https://cloud.tencent.com/developer/article/1147100
+过程总结:
+0. 把所有的词聚集起来，生成词汇表；按照词汇表对训练数据进行转换，换成数字（该训练数据已经做过）
+1. 随机生成一个Embedding矩阵，把每个词转换成embedding vector
+2. 使用双向GRU/LSTM来对输入数据进行计算，得到一个[batch_size, time_step/seq_len, n_hidden]的前向传播和后向传播的结果，并合并起来
+3. 进行Attention处理:
+  1) 使用一个单层神经网络（W.shape为[n_hidden*2, Attention_size(自定义)], 激活函数这里为tanh）来计算上面那个rnn_output与该单词在句子里的权重的关系
+  2) softmax, 变成一个归一化的权重
+  3) 通过上面的权重与上面的rnn_output进行相乘, 计算句子向量(sum 全部单词的权重)
+4. 建立一个简单的单词神经网络作为post_rnn, 输入3的output, 建立loss和accuracy
+5. 分mini-batch对feed_dict输入train数据进行训练, 输入test数据看模型效果
 
-Train RNN (GRU) on IMDB dataset (binary classification)
-Learning and hyper-parameters were not tuned; script serves as an example 
 """
 from __future__ import print_function, division
 
@@ -13,7 +21,7 @@ from keras.datasets import imdb
 from tensorflow.contrib.rnn import GRUCell
 from tensorflow.python.ops.rnn import bidirectional_dynamic_rnn as bi_rnn
 from tqdm import tqdm
-
+import sys
 from attention import attention
 from utils import get_vocabulary_size, fit_in_vocabulary, zero_pad, batch_generator
 
@@ -38,6 +46,9 @@ X_test = fit_in_vocabulary(X_test, vocabulary_size)
 X_train = zero_pad(X_train, SEQUENCE_LENGTH)
 X_test = zero_pad(X_test, SEQUENCE_LENGTH)
 
+print(X_train.shape, X_test.shape)
+
+
 # Different placeholders
 with tf.name_scope('Inputs'):
     batch_ph = tf.placeholder(tf.int32, [None, SEQUENCE_LENGTH], name='batch_ph')
@@ -55,6 +66,7 @@ with tf.name_scope('Embedding_layer'):
 rnn_outputs, _ = bi_rnn(GRUCell(HIDDEN_SIZE), GRUCell(HIDDEN_SIZE),
                         inputs=batch_embedded, sequence_length=seq_len_ph, dtype=tf.float32)
 tf.summary.histogram('RNN_outputs', rnn_outputs)
+# rnn_outputs_shape: [fw_cell, bw_cell], 其中fw_cell.shape = bw_cell.shape = [batch_size, seq_len, n_hidden]
 
 # Attention layer
 with tf.name_scope('Attention_layer'):
